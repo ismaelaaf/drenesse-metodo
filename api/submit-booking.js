@@ -1,0 +1,177 @@
+import {
+  allowMethods,
+  belleFetch,
+  buildFallbackWhatsapp,
+  buildObservation,
+  extractClientCode,
+  getServerConfig,
+  readJsonBody,
+  sendJson
+} from "./_belle.js";
+import {
+  PROMOTION,
+  getObjective,
+  getUnit,
+  getWorkRoutine,
+  normalizeBrazilianMobile,
+  validateMobile
+} from "../src/lib/domain.js";
+
+export const BOOKING_ENDPOINT = "/agenda/gravar";
+
+export function buildBookingBody({ leadCode, unit, objective, payload, observation }) {
+  return {
+    codCli: Number(leadCode),
+    codEstab: unit.code,
+    prof: {
+      cod_usuario: String(payload.slot.professionalCode),
+      nom_usuario: payload.slot.professionalName || "Profissional Drenesse"
+    },
+    dtAgd: payload.slot.date,
+    hri: payload.slot.time,
+    serv: [
+      {
+        codServico: PROMOTION.serviceCode,
+        nome: PROMOTION.serviceName,
+        tempo: PROMOTION.duration,
+        label: PROMOTION.serviceLabel,
+        codSaldo: "",
+        usaDia: "",
+        diaRetorno: 0
+      }
+    ],
+    codPlano: "",
+    agSala: false,
+    codSala: 0,
+    tipoObs: objective.belleObservationCode,
+    temPreferencia: false,
+    observacao: observation
+  };
+}
+
+function validatePayload(payload) {
+  if (!payload || typeof payload !== "object") return "Payload inválido.";
+  if (!payload.name || String(payload.name).trim().length < 2) return "Nome inválido.";
+  const phoneError = validateMobile(payload.phone);
+  if (phoneError) return phoneError;
+  if (!getUnit(payload.unitCode)) return "Unidade inválida.";
+  if (!getObjective(payload.objectiveId)) return "Objetivo inválido.";
+  if (!getWorkRoutine(payload.workRoutineId)) return "Rotina inválida.";
+  if (!payload.slot?.date || !payload.slot?.time || !payload.slot?.professionalCode) {
+    return "Horário inválido.";
+  }
+  return "";
+}
+
+export default async function handler(req, res) {
+  if (!allowMethods(req, res, ["POST"])) return;
+
+  let payload;
+  try {
+    payload = await readJsonBody(req);
+  } catch {
+    sendJson(res, 400, { message: "JSON inválido." });
+    return;
+  }
+
+  const validation = validatePayload(payload);
+  if (validation) {
+    sendJson(res, 400, { message: validation });
+    return;
+  }
+
+  const config = getServerConfig();
+  const unit = getUnit(payload.unitCode);
+  const objective = getObjective(payload.objectiveId);
+  const workRoutine = getWorkRoutine(payload.workRoutineId);
+  const phone = normalizeBrazilianMobile(payload.phone);
+  const observation = buildObservation({
+    name: payload.name,
+    phone,
+    unit,
+    objective,
+    workRoutine,
+    slot: payload.slot,
+    tracking: payload.tracking || {}
+  });
+
+  let leadCode = "";
+  let leadStatus = "existing";
+
+  try {
+    const existingClient = await belleFetch("/cliente/listar", {
+      query: {
+        cpf: "",
+        id: "",
+        codEstab: unit.code,
+        email: "",
+        celular: phone
+      }
+    });
+    leadCode = extractClientCode(existingClient);
+  } catch {
+    leadCode = "";
+  }
+
+  if (!leadCode) {
+    leadStatus = "created";
+    const createdLead = await belleFetch("/cliente/gravar-lead", {
+      method: "POST",
+      body: {
+        nome: String(payload.name).trim(),
+        ddiCelular: "+55",
+        celular: phone,
+        email: "",
+        cpf: "",
+        observacao: observation,
+        tpOrigem: "Campanha",
+        codOrigem: config.originCode,
+        codEstab: unit.code
+      }
+    });
+    leadCode = extractClientCode(createdLead);
+  }
+
+  if (!leadCode) {
+    sendJson(res, 200, {
+      ok: false,
+      leadStatus: "failed",
+      bookingStatus: "fallback",
+      whatsappUrl: buildFallbackWhatsapp({ ...payload, phone }, "fallback"),
+      message: "Cadastro recebido. Vamos confirmar os detalhes pelo WhatsApp."
+    });
+    return;
+  }
+
+  try {
+    const booking = await belleFetch(BOOKING_ENDPOINT, {
+      method: "POST",
+      body: buildBookingBody({ leadCode, unit, objective, payload, observation })
+    });
+
+    const confirmed = Boolean(booking?.dis);
+    const bookingCode = booking?.codAgendamento || booking?.codigo || "";
+    sendJson(res, 200, {
+      ok: confirmed,
+      leadCode,
+      leadStatus,
+      bookingStatus: confirmed ? "confirmed" : "fallback",
+      bookingCode,
+      bookingMessage: confirmed ? "Sessão do Método Drenesse registrada." : "A equipe vai confirmar o melhor horário.",
+      whatsappUrl: buildFallbackWhatsapp(
+        { ...payload, phone },
+        confirmed ? "confirmed" : "fallback",
+        bookingCode
+      )
+    });
+  } catch (error) {
+    sendJson(res, 200, {
+      ok: false,
+      leadCode,
+      leadStatus,
+      bookingStatus: "fallback",
+      bookingMessage: "A equipe vai confirmar o melhor horário.",
+      whatsappUrl: buildFallbackWhatsapp({ ...payload, phone }, "fallback")
+    });
+  }
+}
