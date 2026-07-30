@@ -10,6 +10,7 @@ import {
 } from "./_belle.js";
 import {
   PROMOTION,
+  SELLER,
   getObjective,
   getUnit,
   getWorkRoutine,
@@ -43,6 +44,7 @@ export function buildBookingBody({ leadCode, unit, objective, payload, observati
     codPlano: "",
     agSala: false,
     codSala: 0,
+    codVendedor: SELLER.code,
     tipoObs: objective.belleObservationCode,
     temPreferencia: false,
     observacao: observation

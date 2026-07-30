@@ -1,5 +1,6 @@
 import {
   PROMOTION,
+  SELLER,
   buildWhatsAppUrl,
   getObjective,
   getUnit,
@@ -157,6 +158,7 @@ export function buildObservation({ name, phone, unit, objective, workRoutine, sl
     `Unidade: ${unit?.name || ""}`,
     `Objetivo: ${objective?.label || ""}`,
     `Rotina: ${workRoutine?.label || ""}`,
+    `Vendedor: ${SELLER.name}`,
     `Preferência: ${slot?.date || ""} ${slot?.time || ""}`,
     `Página: ${tracking?.page || ""}`,
     `UTM source: ${tracking?.utm_source || ""}`,

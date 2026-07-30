@@ -39,6 +39,11 @@ export const PROMOTION = Object.freeze({
   campaignLabel: "Campanha de R$ 159,90 por R$ 89,90"
 });
 
+export const SELLER = Object.freeze({
+  code: "99915",
+  name: "Ismael Anderson de Araújo Figueiredo"
+});
+
 export const OBJECTIVES = [
   {
     id: "corporal",

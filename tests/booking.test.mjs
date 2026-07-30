@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { buildObservation } from "../api/_belle.js";
 import { BOOKING_ENDPOINT, buildBookingBody } from "../api/submit-booking.js";
-import { PROMOTION, getObjective, getUnit, getWorkRoutine } from "../src/lib/domain.js";
+import { PROMOTION, SELLER, getObjective, getUnit, getWorkRoutine } from "../src/lib/domain.js";
 
 const payload = {
   slot: {
@@ -24,6 +24,8 @@ assert.equal(BOOKING_ENDPOINT, "/agenda/gravar");
 assert.equal(body.codCli, 1234);
 assert.equal(body.codEstab, 1);
 assert.equal(body.agSala, false);
+assert.equal(body.codVendedor, SELLER.code);
+assert.equal(body.codVendedor, "99915");
 assert.equal(body.serv.length, 1);
 assert.equal(body.serv[0].codServico, PROMOTION.serviceCode);
 assert.equal(body.serv[0].nome, "DRENAGEM MÉTODO DRENESSE");
@@ -45,5 +47,6 @@ assert.match(observation, /Serviço: 22 - DRENAGEM MÉTODO DRENESSE/);
 assert.match(observation, /Duração: 60 minutos/);
 assert.match(observation, /Campanha: de R\$ 159,90 por R\$ 89,90/);
 assert.match(observation, /Rotina: Trabalho sentado\(a\)/);
+assert.match(observation, /Vendedor: Ismael Anderson de Araújo Figueiredo/);
 
 console.log("Booking payload tests passed.");
