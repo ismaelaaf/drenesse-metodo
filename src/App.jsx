@@ -6,6 +6,7 @@ import {
   Check,
   Clock,
   HeartHandshake,
+  IdCard,
   Instagram,
   Leaf,
   Loader2,
@@ -39,12 +40,15 @@ import {
   UNITS,
   WORK_ROUTINES,
   buildWhatsAppUrl,
+  formatCpf,
   formatLongDate,
   formatPhone,
   getObjective,
   getUnit,
   getWorkRoutine,
+  normalizeCpf,
   normalizeBrazilianMobile,
+  validateCpf,
   validateMobile
 } from "./lib/domain.js";
 import { RESULTS } from "./lib/results.js";
@@ -52,6 +56,7 @@ import { RESULTS } from "./lib/results.js";
 const INITIAL_FORM = {
   name: "",
   phone: "",
+  cpf: "",
   unitCode: "",
   objectiveId: "",
   workRoutineId: "",
@@ -368,6 +373,8 @@ export default function App() {
       if (form.name.trim().length < 2) return "Digite seu nome para continuar.";
       const phoneError = validateMobile(form.phone);
       if (phoneError) return phoneError;
+      const cpfError = validateCpf(form.cpf);
+      if (cpfError) return cpfError;
     }
     if (currentStep === 1 && !selectedUnit) return "Escolha a unidade de preferência.";
     if (currentStep === 2 && !selectedObjective) return "Escolha o objetivo do atendimento.";
@@ -409,6 +416,7 @@ export default function App() {
     const payload = {
       name: form.name.trim(),
       phone: normalizeBrazilianMobile(form.phone),
+      cpf: normalizeCpf(form.cpf),
       unitCode: Number(form.unitCode),
       objectiveId: form.objectiveId,
       workRoutineId: form.workRoutineId,
@@ -423,6 +431,14 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       const data = await response.json().catch(() => ({}));
+      if (data.bookingStatus === "ineligible") {
+        setResult(data);
+        setSubmitState("ineligible");
+        window.setTimeout(() => {
+          if (data.whatsappUrl) window.location.href = data.whatsappUrl;
+        }, 2400);
+        return;
+      }
       if (!response.ok) throw new Error(data.message || "Não foi possível concluir agora.");
       setResult(data);
       setSubmitState("success");
@@ -1066,6 +1082,28 @@ function LeadForm({
   });
   const submitDisabled = submitState === "loading" || !form.slot;
 
+  if (submitState === "ineligible") {
+    return (
+      <section className="form-card form-card--success form-card--ineligible" aria-live="polite">
+        <div className="success-mark">
+          <HeartHandshake aria-hidden="true" size={28} />
+        </div>
+        <h2>Você já aproveitou este benefício</h2>
+        <p>
+          Encontramos este CPF em nosso cadastro, então esta condição especial não pode ser utilizada novamente.
+          Nossa equipe terá prazer em apresentar outras opções do Método Drenesse.
+        </p>
+        <p className="redirect-note">Estamos te encaminhando para o atendimento pelo WhatsApp.</p>
+        {result?.whatsappUrl && (
+          <a className="primary-button" href={result.whatsappUrl}>
+            <MessageCircle aria-hidden="true" size={18} />
+            Falar com atendimento
+          </a>
+        )}
+      </section>
+    );
+  }
+
   if (submitState === "success") {
     return (
       <section className="form-card form-card--success" aria-live="polite">
@@ -1183,7 +1221,7 @@ function LeadForm({
 function StepNav({ form, setStep, step }) {
   const enabledStep = [
     true,
-    form.name.trim().length >= 2 && !validateMobile(form.phone),
+    form.name.trim().length >= 2 && !validateMobile(form.phone) && !validateCpf(form.cpf),
     Boolean(form.unitCode),
     Boolean(form.objectiveId),
     Boolean(form.workRoutineId)
@@ -1215,11 +1253,13 @@ function StepNav({ form, setStep, step }) {
 function DataStep({ form, updateField }) {
   const phoneDigits = normalizeBrazilianMobile(form.phone);
   const phoneOk = phoneDigits.length === 11 && !validateMobile(phoneDigits);
+  const cpfDigits = normalizeCpf(form.cpf);
+  const cpfOk = cpfDigits.length === 11 && !validateCpf(cpfDigits);
 
   return (
     <div className="field-stack">
       <label>
-        <span>Nome e WhatsApp</span>
+        <span>Nome completo</span>
         <div className="input-shell">
           <UserRound aria-hidden="true" size={20} />
           <input
@@ -1235,7 +1275,7 @@ function DataStep({ form, updateField }) {
       </label>
 
       <label>
-        <span className="sr-only">WhatsApp</span>
+        <span>WhatsApp</span>
         <div className={phoneOk ? "input-shell input-shell--ok" : "input-shell"}>
           <Phone aria-hidden="true" size={20} />
           <input
@@ -1252,10 +1292,33 @@ function DataStep({ form, updateField }) {
         </div>
       </label>
 
-      {phoneOk && (
+      <label>
+        <span>CPF</span>
+        <div className={cpfOk ? "input-shell input-shell--ok" : "input-shell"}>
+          <IdCard aria-hidden="true" size={20} />
+          <input
+            autoComplete="off"
+            data-testid="cpf-input"
+            inputMode="numeric"
+            maxLength={14}
+            name="cpf"
+            onChange={(event) => updateField("cpf", formatCpf(event.target.value))}
+            placeholder="000.000.000-00"
+            type="text"
+            value={form.cpf}
+          />
+        </div>
+      </label>
+
+      <p className="privacy-note">
+        <Lock aria-hidden="true" size={14} />
+        O CPF é usado somente para validar a elegibilidade desta campanha.
+      </p>
+
+      {phoneOk && cpfOk && (
         <p className="valid-note">
           <Check aria-hidden="true" size={16} />
-          O número acima está correto. Pode continuar.
+          Dados conferidos. Pode continuar.
         </p>
       )}
     </div>

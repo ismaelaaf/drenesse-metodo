@@ -1269,6 +1269,18 @@ a {
   background: var(--success);
 }
 
+.form-card--ineligible .success-mark {
+  background: var(--accent);
+}
+
+.form-card--ineligible .primary-button {
+  margin-top: 4px;
+}
+
+.form-card--ineligible .redirect-note {
+  font-size: 13px;
+}
+
 .progress-block {
   margin-bottom: 24px;
 }
@@ -1411,6 +1423,20 @@ a {
   color: var(--success);
   font-size: 14px;
   font-weight: 700;
+}
+
+.privacy-note {
+  margin: -3px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #806d71;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.privacy-note svg {
+  flex: 0 0 auto;
 }
 
 .safe-note {

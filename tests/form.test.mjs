@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import {
   PROMOTION,
   buildWhatsAppUrl,
+  formatCpf,
   formatPhone,
   getObjective,
   getUnit,
   getWorkRoutine,
+  normalizeCpf,
   normalizeBrazilianMobile,
   toBelleDate,
+  validateCpf,
   validateMobile
 } from "../src/lib/domain.js";
 
@@ -15,6 +18,12 @@ assert.equal(normalizeBrazilianMobile("+55 (84) 9 8830-7853"), "84988307853");
 assert.equal(formatPhone("84988307853"), "(84) 9 8830-7853");
 assert.equal(validateMobile("84988307853"), null);
 assert.match(validateMobile("8488307853"), /Faltam|Falta o 9/);
+assert.equal(normalizeCpf("529.982.247-25"), "52998224725");
+assert.equal(formatCpf("52998224725"), "529.982.247-25");
+assert.equal(validateCpf("529.982.247-25"), null);
+assert.match(validateCpf("111.111.111-11"), /inválido/);
+assert.match(validateCpf("529.982.247-2"), /incompleto/);
+assert.match(validateCpf("529.982.247-259"), /somente 11/);
 assert.equal(getUnit(2).shortName, "Lagoa Nova");
 assert.equal(getObjective("facial").belleObservationCode, 2);
 assert.equal(getWorkRoutine("em-pe").label, "Trabalho em pé");

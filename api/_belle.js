@@ -11,6 +11,7 @@ import {
 
 const DEFAULT_BASE_URL = "https://app.bellesoftware.com.br/api/release/controller/IntegracaoExterna/v1.0";
 const DEFAULT_WHATSAPP_NUMBER = "5584988307853";
+export const BENEFIT_USED_WHATSAPP_MESSAGE = "Olá, gostaria de obter mais informações sobre Método Drenesse.";
 
 export function sendJson(res, statusCode, payload) {
   res.statusCode = statusCode;
@@ -184,4 +185,9 @@ export function buildFallbackWhatsapp(payload, bookingStatus = "fallback", booki
     bookingStatus,
     bookingCode
   });
+}
+
+export function buildBenefitUsedWhatsapp() {
+  const { whatsappNumber } = getServerConfig();
+  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(BENEFIT_USED_WHATSAPP_MESSAGE)}`;
 }

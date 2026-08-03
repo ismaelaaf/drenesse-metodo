@@ -20,7 +20,8 @@ O plugin local do Vite carrega as variáveis apenas no processo do servidor. Ela
 
 ## Fluxo
 
-- Coleta nome e WhatsApp.
+- Coleta nome, WhatsApp e CPF, com validação dos dígitos verificadores.
+- Impede uma nova utilização do benefício quando o CPF já existe no cadastro Belle das unidades da campanha.
 - Qualifica unidade, objetivo e rotina de trabalho.
 - Consulta a data atual e os cinco dias seguintes na Belle para o serviço `22 - DRENAGEM MÉTODO DRENESSE`.
 - Distingue horários disponíveis, consulta parcial e falha técnica.

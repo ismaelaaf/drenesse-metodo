@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
-import { buildObservation } from "../api/_belle.js";
-import { BOOKING_ENDPOINT, buildBookingBody } from "../api/submit-booking.js";
+import {
+  BENEFIT_USED_WHATSAPP_MESSAGE,
+  buildBenefitUsedWhatsapp,
+  buildObservation
+} from "../api/_belle.js";
+import { BOOKING_ENDPOINT, buildBookingBody, findExistingClientByCpf } from "../api/submit-booking.js";
 import { PROMOTION, SELLER, getObjective, getUnit, getWorkRoutine } from "../src/lib/domain.js";
 
 const payload = {
@@ -48,5 +52,17 @@ assert.match(observation, /Duração: 60 minutos/);
 assert.match(observation, /Campanha: de R\$ 159,90 por R\$ 89,90/);
 assert.match(observation, /Rotina: Trabalho sentado\(a\)/);
 assert.match(observation, /Vendedor: Ismael Anderson de Araújo Figueiredo/);
+
+const searchedUnits = [];
+const existingClient = await findExistingClientByCpf("529.982.247-25", 2, async (_path, { query }) => {
+  searchedUnits.push(query.codEstab);
+  return query.codEstab === 3 ? { codigo: 9876 } : [];
+});
+assert.deepEqual(searchedUnits, [2, 1, 3]);
+assert.deepEqual(existingClient, { clientCode: "9876", unitCode: 3 });
+
+const benefitUsedUrl = buildBenefitUsedWhatsapp();
+assert.equal(new URL(benefitUsedUrl).searchParams.get("text"), BENEFIT_USED_WHATSAPP_MESSAGE);
+assert.equal(BENEFIT_USED_WHATSAPP_MESSAGE, "Olá, gostaria de obter mais informações sobre Método Drenesse.");
 
 console.log("Booking payload tests passed.");

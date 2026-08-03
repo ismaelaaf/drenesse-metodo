@@ -1,6 +1,7 @@
 import {
   allowMethods,
   belleFetch,
+  buildBenefitUsedWhatsapp,
   buildFallbackWhatsapp,
   buildObservation,
   extractClientCode,
@@ -11,14 +12,41 @@ import {
 import {
   PROMOTION,
   SELLER,
+  UNITS,
   getObjective,
   getUnit,
   getWorkRoutine,
+  normalizeCpf,
   normalizeBrazilianMobile,
+  validateCpf,
   validateMobile
 } from "../src/lib/domain.js";
 
 export const BOOKING_ENDPOINT = "/agenda/gravar";
+
+export async function findExistingClientByCpf(cpf, preferredUnitCode, fetcher = belleFetch) {
+  const normalizedCpf = normalizeCpf(cpf);
+  const orderedUnitCodes = [
+    Number(preferredUnitCode),
+    ...UNITS.map((unit) => unit.code).filter((code) => code !== Number(preferredUnitCode))
+  ];
+
+  for (const unitCode of orderedUnitCodes) {
+    const client = await fetcher("/cliente/listar", {
+      query: {
+        cpf: normalizedCpf,
+        id: "",
+        codEstab: unitCode,
+        email: "",
+        celular: ""
+      }
+    });
+    const clientCode = extractClientCode(client);
+    if (clientCode) return { clientCode, unitCode };
+  }
+
+  return null;
+}
 
 export function buildBookingBody({ leadCode, unit, objective, payload, observation }) {
   return {
@@ -56,6 +84,8 @@ function validatePayload(payload) {
   if (!payload.name || String(payload.name).trim().length < 2) return "Nome inválido.";
   const phoneError = validateMobile(payload.phone);
   if (phoneError) return phoneError;
+  const cpfError = validateCpf(payload.cpf);
+  if (cpfError) return cpfError;
   if (!getUnit(payload.unitCode)) return "Unidade inválida.";
   if (!getObjective(payload.objectiveId)) return "Objetivo inválido.";
   if (!getWorkRoutine(payload.workRoutineId)) return "Rotina inválida.";
@@ -87,6 +117,7 @@ export default async function handler(req, res) {
   const objective = getObjective(payload.objectiveId);
   const workRoutine = getWorkRoutine(payload.workRoutineId);
   const phone = normalizeBrazilianMobile(payload.phone);
+  const cpf = normalizeCpf(payload.cpf);
   const observation = buildObservation({
     name: payload.name,
     phone,
@@ -97,42 +128,43 @@ export default async function handler(req, res) {
     tracking: payload.tracking || {}
   });
 
-  let leadCode = "";
-  let leadStatus = "existing";
-
+  let existingRegistration;
   try {
-    const existingClient = await belleFetch("/cliente/listar", {
-      query: {
-        cpf: "",
-        id: "",
-        codEstab: unit.code,
-        email: "",
-        celular: phone
-      }
-    });
-    leadCode = extractClientCode(existingClient);
+    existingRegistration = await findExistingClientByCpf(cpf, unit.code);
   } catch {
-    leadCode = "";
+    sendJson(res, 503, {
+      message: "Não conseguimos validar seu CPF agora. Tente novamente em alguns instantes."
+    });
+    return;
   }
 
-  if (!leadCode) {
-    leadStatus = "created";
-    const createdLead = await belleFetch("/cliente/gravar-lead", {
-      method: "POST",
-      body: {
-        nome: String(payload.name).trim(),
-        ddiCelular: "+55",
-        celular: phone,
-        email: "",
-        cpf: "",
-        observacao: observation,
-        tpOrigem: "Campanha",
-        codOrigem: config.originCode,
-        codEstab: unit.code
-      }
+  if (existingRegistration) {
+    sendJson(res, 200, {
+      ok: false,
+      bookingStatus: "ineligible",
+      reason: "benefit-used",
+      whatsappUrl: buildBenefitUsedWhatsapp(),
+      message: "Este CPF já está cadastrado e o benefício é limitado a uma utilização por pessoa."
     });
-    leadCode = extractClientCode(createdLead);
+    return;
   }
+
+  const leadStatus = "created";
+  const createdLead = await belleFetch("/cliente/gravar-lead", {
+    method: "POST",
+    body: {
+      nome: String(payload.name).trim(),
+      ddiCelular: "+55",
+      celular: phone,
+      email: "",
+      cpf,
+      observacao: observation,
+      tpOrigem: "Campanha",
+      codOrigem: config.originCode,
+      codEstab: unit.code
+    }
+  });
+  const leadCode = extractClientCode(createdLead);
 
   if (!leadCode) {
     sendJson(res, 200, {
