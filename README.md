@@ -14,13 +14,14 @@ O plugin local do Vite carrega as variáveis apenas no processo do servidor. Ela
 ## Deploy no Vercel
 
 1. Importe esta pasta como projeto.
-2. Configure `BELLE_API_TOKEN`, `BELLE_BASE_URL`, `WHATSAPP_NUMBER` e `BELLE_ORIGIN_CODE` nas variáveis protegidas do projeto.
+2. Configure as variáveis protegidas da Belle e da Lever listadas em `.env.example`.
 3. Use `pnpm build` como comando de build.
 4. Publique a pasta `dist` gerada pelo Vite.
 
 ## Fluxo
 
 - Coleta nome e WhatsApp, com validação de DDD e celular.
+- Ao avançar para a segunda etapa, cria um card na etapa `Leads Landing Page` do painel `SDRs` na Lever Conversas.
 - Impede uma nova utilização do benefício quando o WhatsApp já existe no cadastro Belle de qualquer unidade da campanha.
 - Qualifica unidade, objetivo e rotina de trabalho.
 - Consulta a data atual e os cinco dias seguintes na Belle para o serviço `22 - DRENAGEM MÉTODO DRENESSE`.

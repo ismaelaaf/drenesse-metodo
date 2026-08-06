@@ -298,6 +298,7 @@ export default function App() {
   const [availabilityAttempt, setAvailabilityAttempt] = useState(0);
   const [submitState, setSubmitState] = useState("idle");
   const [result, setResult] = useState(null);
+  const capturedLeadKeysRef = useRef(new Set());
 
   const selectedUnit = useMemo(() => getUnit(form.unitCode), [form.unitCode]);
   const selectedObjective = useMemo(() => getObjective(form.objectiveId), [form.objectiveId]);
@@ -383,6 +384,23 @@ export default function App() {
       return;
     }
     setError("");
+    if (step === 0) {
+      const phone = normalizeBrazilianMobile(form.phone);
+      const captureKey = phone;
+      if (!capturedLeadKeysRef.current.has(captureKey)) {
+        capturedLeadKeysRef.current.add(captureKey);
+        fetch("/api/capture-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: form.name.trim(), phone }),
+          keepalive: true
+        })
+          .then((response) => {
+            if (!response.ok) capturedLeadKeysRef.current.delete(captureKey);
+          })
+          .catch(() => capturedLeadKeysRef.current.delete(captureKey));
+      }
+    }
     setStep((current) => Math.min(current + 1, FORM_STEPS.length - 1));
   }
 

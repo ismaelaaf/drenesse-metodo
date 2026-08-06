@@ -3,7 +3,16 @@ import { pathToFileURL } from "node:url";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
-const SERVER_ENV_KEYS = ["BELLE_API_TOKEN", "BELLE_BASE_URL", "WHATSAPP_NUMBER", "BELLE_ORIGIN_CODE"];
+const SERVER_ENV_KEYS = [
+  "BELLE_API_TOKEN",
+  "BELLE_BASE_URL",
+  "WHATSAPP_NUMBER",
+  "BELLE_ORIGIN_CODE",
+  "LEVER_API_TOKEN",
+  "LEVER_BASE_URL",
+  "LEVER_PANEL_ID",
+  "LEVER_STEP_ID"
+];
 
 function localVercelApi() {
   return {
@@ -14,6 +23,7 @@ function localVercelApi() {
         const pathname = requestUrl.pathname;
         const apiModules = {
           "/api/availability": "api/availability.js",
+          "/api/capture-lead": "api/capture-lead.js",
           "/api/submit-booking": "api/submit-booking.js"
         };
 
