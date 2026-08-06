@@ -16,16 +16,14 @@ import {
   getObjective,
   getUnit,
   getWorkRoutine,
-  normalizeCpf,
   normalizeBrazilianMobile,
-  validateCpf,
   validateMobile
 } from "../src/lib/domain.js";
 
 export const BOOKING_ENDPOINT = "/agenda/gravar";
 
-export async function findExistingClientByCpf(cpf, preferredUnitCode, fetcher = belleFetch) {
-  const normalizedCpf = normalizeCpf(cpf);
+export async function findExistingClientByPhone(phone, preferredUnitCode, fetcher = belleFetch) {
+  const normalizedPhone = normalizeBrazilianMobile(phone);
   const orderedUnitCodes = [
     Number(preferredUnitCode),
     ...UNITS.map((unit) => unit.code).filter((code) => code !== Number(preferredUnitCode))
@@ -34,11 +32,11 @@ export async function findExistingClientByCpf(cpf, preferredUnitCode, fetcher = 
   for (const unitCode of orderedUnitCodes) {
     const client = await fetcher("/cliente/listar", {
       query: {
-        cpf: normalizedCpf,
+        cpf: "",
         id: "",
         codEstab: unitCode,
         email: "",
-        celular: ""
+        celular: normalizedPhone
       }
     });
     const clientCode = extractClientCode(client);
@@ -84,8 +82,6 @@ function validatePayload(payload) {
   if (!payload.name || String(payload.name).trim().length < 2) return "Nome inválido.";
   const phoneError = validateMobile(payload.phone);
   if (phoneError) return phoneError;
-  const cpfError = validateCpf(payload.cpf);
-  if (cpfError) return cpfError;
   if (!getUnit(payload.unitCode)) return "Unidade inválida.";
   if (!getObjective(payload.objectiveId)) return "Objetivo inválido.";
   if (!getWorkRoutine(payload.workRoutineId)) return "Rotina inválida.";
@@ -117,7 +113,6 @@ export default async function handler(req, res) {
   const objective = getObjective(payload.objectiveId);
   const workRoutine = getWorkRoutine(payload.workRoutineId);
   const phone = normalizeBrazilianMobile(payload.phone);
-  const cpf = normalizeCpf(payload.cpf);
   const observation = buildObservation({
     name: payload.name,
     phone,
@@ -130,10 +125,10 @@ export default async function handler(req, res) {
 
   let existingRegistration;
   try {
-    existingRegistration = await findExistingClientByCpf(cpf, unit.code);
+    existingRegistration = await findExistingClientByPhone(phone, unit.code);
   } catch {
     sendJson(res, 503, {
-      message: "Não conseguimos validar seu CPF agora. Tente novamente em alguns instantes."
+      message: "Não conseguimos validar seu WhatsApp agora. Tente novamente em alguns instantes."
     });
     return;
   }
@@ -144,7 +139,7 @@ export default async function handler(req, res) {
       bookingStatus: "ineligible",
       reason: "benefit-used",
       whatsappUrl: buildBenefitUsedWhatsapp(),
-      message: "Este CPF já está cadastrado e o benefício é limitado a uma utilização por pessoa."
+      message: "Este WhatsApp já está cadastrado e o benefício é limitado a uma utilização por pessoa."
     });
     return;
   }
@@ -157,7 +152,7 @@ export default async function handler(req, res) {
       ddiCelular: "+55",
       celular: phone,
       email: "",
-      cpf,
+      cpf: "",
       observacao: observation,
       tpOrigem: "Campanha",
       codOrigem: config.originCode,

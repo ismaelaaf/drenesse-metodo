@@ -4,7 +4,7 @@ import {
   buildBenefitUsedWhatsapp,
   buildObservation
 } from "../api/_belle.js";
-import { BOOKING_ENDPOINT, buildBookingBody, findExistingClientByCpf } from "../api/submit-booking.js";
+import { BOOKING_ENDPOINT, buildBookingBody, findExistingClientByPhone } from "../api/submit-booking.js";
 import { PROMOTION, SELLER, getObjective, getUnit, getWorkRoutine } from "../src/lib/domain.js";
 
 const payload = {
@@ -54,11 +54,15 @@ assert.match(observation, /Rotina: Trabalho sentado\(a\)/);
 assert.match(observation, /Vendedor: Ismael Anderson de Araújo Figueiredo/);
 
 const searchedUnits = [];
-const existingClient = await findExistingClientByCpf("529.982.247-25", 2, async (_path, { query }) => {
+const searchedPhones = [];
+const existingClient = await findExistingClientByPhone("+55 (84) 9 8830-7853", 2, async (_path, { query }) => {
   searchedUnits.push(query.codEstab);
+  searchedPhones.push(query.celular);
+  assert.equal(query.cpf, "");
   return query.codEstab === 3 ? { codigo: 9876 } : [];
 });
 assert.deepEqual(searchedUnits, [2, 1, 3]);
+assert.deepEqual(searchedPhones, ["84988307853", "84988307853", "84988307853"]);
 assert.deepEqual(existingClient, { clientCode: "9876", unitCode: 3 });
 
 const benefitUsedUrl = buildBenefitUsedWhatsapp();

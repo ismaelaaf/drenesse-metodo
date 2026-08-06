@@ -101,41 +101,6 @@ export function onlyDigits(value = "") {
   return String(value).replace(/\D/g, "");
 }
 
-export function normalizeCpf(value = "") {
-  return onlyDigits(value).slice(0, 11);
-}
-
-export function formatCpf(value = "") {
-  const digits = normalizeCpf(value);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-}
-
-export function validateCpf(value = "") {
-  const digits = onlyDigits(value);
-  if (!digits) return "Digite seu CPF para validar o benefício.";
-  if (digits.length < 11) return "CPF incompleto. Confira os 11 números.";
-  if (digits.length > 11) return "CPF inválido. Digite somente 11 números.";
-  if (/^(\d)\1{10}$/.test(digits)) return "CPF inválido. Confira os números digitados.";
-
-  const calculateDigit = (length) => {
-    const sum = digits
-      .slice(0, length)
-      .split("")
-      .reduce((total, digit, index) => total + Number(digit) * (length + 1 - index), 0);
-    const remainder = (sum * 10) % 11;
-    return remainder === 10 ? 0 : remainder;
-  };
-
-  if (calculateDigit(9) !== Number(digits[9]) || calculateDigit(10) !== Number(digits[10])) {
-    return "CPF inválido. Confira os números digitados.";
-  }
-
-  return null;
-}
-
 export function normalizeBrazilianMobile(value = "") {
   let digits = onlyDigits(value);
   if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
