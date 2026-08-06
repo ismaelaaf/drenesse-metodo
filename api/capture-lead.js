@@ -15,46 +15,49 @@ export function getLeverConfig() {
   };
 }
 
-export function buildLeverCardPayload({ name, phone }, config = getLeverConfig()) {
-  const normalizedPhone = normalizeBrazilianMobile(phone);
+function getLeverHeaders(config) {
   return {
-    title: String(name).trim(),
-    description: `WhatsApp: +55 ${formatPhone(normalizedPhone)}\nOrigem: ${LANDING_SOURCE}`,
-    panelId: config.panelId,
-    stepId: config.stepId
+    Authorization: `Bearer ${config.token}`,
+    "Content-Type": "application/json"
   };
 }
 
-export async function createLeverCard(lead, { config = getLeverConfig(), fetcher = fetch } = {}) {
+function getResponseEntity(payload) {
+  if (payload && typeof payload === "object" && payload.data && typeof payload.data === "object") {
+    return payload.data;
+  }
+  return payload;
+}
+
+async function requestLeverJson(
+  url,
+  { method = "GET", body, config = getLeverConfig(), fetcher = fetch, retries = 1 } = {}
+) {
   if (!config.token) throw new Error("LEVER_API_TOKEN não configurado.");
 
-  const url = `${config.baseUrl}/crm/v1/panel/card`;
-  const body = buildLeverCardPayload(lead, config);
   let lastError;
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
       const response = await fetcher(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
+        method,
+        headers: getLeverHeaders(config),
+        ...(body === undefined ? {} : { body: JSON.stringify(body) })
       });
       const text = await response.text();
-
-      if (response.ok) {
-        if (!text) return {};
+      let payload = {};
+      if (text) {
         try {
-          return JSON.parse(text);
+          payload = JSON.parse(text);
         } catch {
-          return {};
+          payload = {};
         }
       }
 
+      if (response.ok) return payload;
+
       const error = new Error(`Lever API respondeu com status ${response.status}.`);
       error.statusCode = response.status;
+      error.payload = payload;
       lastError = error;
       if (response.status < 500 && response.status !== 429) throw error;
     } catch (error) {
@@ -63,7 +66,113 @@ export async function createLeverCard(lead, { config = getLeverConfig(), fetcher
     }
   }
 
-  throw lastError || new Error("Não foi possível adicionar o lead à Lever.");
+  throw lastError || new Error("Não foi possível acessar a Lever.");
+}
+
+export function buildLeverContactPayload({ name, phone }) {
+  return {
+    name: String(name).trim(),
+    phoneNumber: `+55|${normalizeBrazilianMobile(phone)}`
+  };
+}
+
+export function buildLeverCardPayload({ name, phone, contactId }, config = getLeverConfig()) {
+  if (!contactId) throw new Error("O card da Lever precisa estar vinculado a um contato.");
+  const normalizedPhone = normalizeBrazilianMobile(phone);
+  return {
+    title: String(name).trim(),
+    description: `WhatsApp: +55 ${formatPhone(normalizedPhone)}\nOrigem: ${LANDING_SOURCE}`,
+    panelId: config.panelId,
+    stepId: config.stepId,
+    contactIds: [String(contactId)]
+  };
+}
+
+export async function findLeverContactByPhone(
+  phone,
+  { config = getLeverConfig(), fetcher = fetch } = {}
+) {
+  const normalizedPhone = normalizeBrazilianMobile(phone);
+  const url = `${config.baseUrl}/core/v1/contact/filter`;
+
+  for (const status of ["ACTIVE", "ARCHIVED", "BLOCKED"]) {
+    const payload = await requestLeverJson(url, {
+      method: "POST",
+      body: {
+        phoneNumber: normalizedPhone,
+        status,
+        pageNumber: 1,
+        pageSize: 10
+      },
+      config,
+      fetcher
+    });
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    const contact = items.find((item) => {
+      const itemPhone = item?.phoneNumber || item?.phonenumber || "";
+      return normalizeBrazilianMobile(itemPhone) === normalizedPhone;
+    });
+    if (contact?.id) return contact;
+  }
+
+  return null;
+}
+
+export async function createLeverContact(
+  lead,
+  { config = getLeverConfig(), fetcher = fetch } = {}
+) {
+  const payload = await requestLeverJson(`${config.baseUrl}/core/v1/contact`, {
+    method: "POST",
+    body: buildLeverContactPayload(lead),
+    config,
+    fetcher,
+    retries: 0
+  });
+  const contact = getResponseEntity(payload);
+  if (!contact?.id) throw new Error("A Lever não retornou o identificador do contato.");
+  return contact;
+}
+
+export async function ensureLeverContact(
+  lead,
+  { config = getLeverConfig(), fetcher = fetch } = {}
+) {
+  const existingContact = await findLeverContactByPhone(lead.phone, { config, fetcher });
+  if (existingContact) return existingContact;
+
+  try {
+    return await createLeverContact(lead, { config, fetcher });
+  } catch (error) {
+    const contactCreatedByAnotherRequest = await findLeverContactByPhone(lead.phone, {
+      config,
+      fetcher
+    });
+    if (contactCreatedByAnotherRequest) return contactCreatedByAnotherRequest;
+    throw error;
+  }
+}
+
+export async function createLeverCard(lead, { config = getLeverConfig(), fetcher = fetch } = {}) {
+  const payload = await requestLeverJson(`${config.baseUrl}/crm/v1/panel/card`, {
+    method: "POST",
+    body: buildLeverCardPayload(lead, config),
+    config,
+    fetcher
+  });
+  return getResponseEntity(payload);
+}
+
+export async function captureLeverLead(
+  lead,
+  { config = getLeverConfig(), fetcher = fetch } = {}
+) {
+  const contact = await ensureLeverContact(lead, { config, fetcher });
+  const card = await createLeverCard(
+    { ...lead, contactId: contact.id },
+    { config, fetcher }
+  );
+  return { contact, card };
 }
 
 function validateLead(payload) {
@@ -90,11 +199,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const card = await createLeverCard({
+    const { contact, card } = await captureLeverLead({
       name: String(payload.name).trim(),
       phone: normalizeBrazilianMobile(payload.phone)
     });
-    sendJson(res, 201, { ok: true, cardId: card?.id || "" });
+    sendJson(res, 201, {
+      ok: true,
+      contactId: contact?.id || "",
+      cardId: card?.id || ""
+    });
   } catch {
     sendJson(res, 502, {
       ok: false,
