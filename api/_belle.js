@@ -148,14 +148,13 @@ export function extractClientCode(data) {
   return String(data.codigo || data.codCliente || data.cod_cliente || "");
 }
 
-export function buildObservation({ name, email, phone, unit, objective, workRoutine, slot, tracking }) {
+export function buildObservation({ name, phone, unit, objective, workRoutine, slot, tracking }) {
   const lines = [
     "Landing Campanha Método Drenesse",
     `Serviço: ${PROMOTION.serviceLabel}`,
     `Duração: ${PROMOTION.duration} minutos`,
     `Campanha: de ${PROMOTION.regularPrice} por ${PROMOTION.promotionalPrice}`,
     `Nome: ${name}`,
-    `E-mail: ${email || ""}`,
     `WhatsApp: ${phone}`,
     `Unidade: ${unit?.name || ""}`,
     `Objetivo: ${objective?.label || ""}`,

@@ -40,7 +40,6 @@ assert.ok(!("tempo" in body));
 
 const observation = buildObservation({
   name: "Maria",
-  email: "maria@example.com",
   phone: "84999999999",
   unit: getUnit(1),
   objective: getObjective("corporal"),
@@ -52,7 +51,6 @@ assert.match(observation, /Serviço: 22 - DRENAGEM MÉTODO DRENESSE/);
 assert.match(observation, /Duração: 60 minutos/);
 assert.match(observation, /Campanha: de R\$ 159,90 por R\$ 89,90/);
 assert.match(observation, /Rotina: Trabalho sentado\(a\)/);
-assert.match(observation, /E-mail: maria@example.com/);
 assert.match(observation, /Vendedor: Ismael Anderson de Araújo Figueiredo/);
 
 const searchedUnits = [];

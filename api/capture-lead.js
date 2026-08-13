@@ -69,10 +69,9 @@ async function requestLeverJson(
   throw lastError || new Error("Não foi possível acessar a Lever.");
 }
 
-export function buildLeverContactPayload({ name, email, phone }) {
+export function buildLeverContactPayload({ name, phone }) {
   return {
     name: String(name).trim(),
-    email: String(email || "").trim().toLowerCase(),
     phoneNumber: `+55|${normalizeBrazilianMobile(phone)}`
   };
 }
@@ -179,9 +178,6 @@ export async function captureLeverLead(
 function validateLead(payload) {
   if (!payload || typeof payload !== "object") return "Payload inválido.";
   if (!payload.name || String(payload.name).trim().length < 2) return "Nome inválido.";
-  if (!payload.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(payload.email).trim())) {
-    return "E-mail inválido.";
-  }
   return validateMobile(payload.phone) || "";
 }
 
@@ -205,7 +201,6 @@ export default async function handler(req, res) {
   try {
     const { contact, card } = await captureLeverLead({
       name: String(payload.name).trim(),
-      email: String(payload.email).trim().toLowerCase(),
       phone: normalizeBrazilianMobile(payload.phone)
     });
     sendJson(res, 201, {

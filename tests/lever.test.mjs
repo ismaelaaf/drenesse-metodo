@@ -13,15 +13,10 @@ const config = {
   stepId: "0e0f41c7-0c7b-4576-b3bd-f62d42e74458"
 };
 
-const lead = {
-  name: " Maria da Silva ",
-  email: " MARIA@EXAMPLE.COM ",
-  phone: "+55 (84) 9 8830-7853"
-};
+const lead = { name: " Maria da Silva ", phone: "+55 (84) 9 8830-7853" };
 
 assert.deepEqual(buildLeverContactPayload(lead), {
   name: "Maria da Silva",
-  email: "maria@example.com",
   phoneNumber: "+55|84988307853"
 });
 
@@ -115,7 +110,6 @@ assert.throws(
   assert.deepEqual(filterStatuses, ["ACTIVE", "ARCHIVED", "BLOCKED"]);
   assert.deepEqual(contactRequest, {
     name: "Maria da Silva",
-    email: "maria@example.com",
     phoneNumber: "+55|84988307853"
   });
   assert.deepEqual(cardRequest.contactIds, ["new-contact"]);

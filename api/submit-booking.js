@@ -80,9 +80,6 @@ export function buildBookingBody({ leadCode, unit, objective, payload, observati
 function validatePayload(payload) {
   if (!payload || typeof payload !== "object") return "Payload inválido.";
   if (!payload.name || String(payload.name).trim().length < 2) return "Nome inválido.";
-  if (!payload.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(payload.email).trim())) {
-    return "E-mail inválido.";
-  }
   const phoneError = validateMobile(payload.phone);
   if (phoneError) return phoneError;
   if (!getUnit(payload.unitCode)) return "Unidade inválida.";
@@ -118,7 +115,6 @@ export default async function handler(req, res) {
   const phone = normalizeBrazilianMobile(payload.phone);
   const observation = buildObservation({
     name: payload.name,
-    email: payload.email,
     phone,
     unit,
     objective,
@@ -155,7 +151,7 @@ export default async function handler(req, res) {
       nome: String(payload.name).trim(),
       ddiCelular: "+55",
       celular: phone,
-      email: String(payload.email).trim().toLowerCase(),
+      email: "",
       cpf: "",
       observacao: observation,
       tpOrigem: "Campanha",
