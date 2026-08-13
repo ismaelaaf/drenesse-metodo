@@ -130,6 +130,13 @@ export function validateMobile(value = "") {
   return null;
 }
 
+export function validateEmail(value = "") {
+  const email = String(value).trim();
+  if (!email) return "Digite seu e-mail para continuar.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Digite um e-mail válido.";
+  return null;
+}
+
 export function getUnit(code) {
   return UNITS.find((unit) => Number(unit.code) === Number(code)) || null;
 }

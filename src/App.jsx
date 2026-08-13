@@ -10,6 +10,7 @@ import {
   Leaf,
   Loader2,
   Lock,
+  Mail,
   MapPin,
   MessageCircle,
   Microscope,
@@ -45,12 +46,15 @@ import {
   getUnit,
   getWorkRoutine,
   normalizeBrazilianMobile,
+  validateEmail,
   validateMobile
 } from "./lib/domain.js";
 import { RESULTS } from "./lib/results.js";
+import { pushLeadTypebotEvent } from "./lib/tracking.js";
 
 const INITIAL_FORM = {
   name: "",
+  email: "",
   phone: "",
   unitCode: "",
   objectiveId: "",
@@ -299,6 +303,7 @@ export default function App() {
   const [submitState, setSubmitState] = useState("idle");
   const [result, setResult] = useState(null);
   const capturedLeadKeysRef = useRef(new Set());
+  const trackedLeadKeysRef = useRef(new Set());
 
   const selectedUnit = useMemo(() => getUnit(form.unitCode), [form.unitCode]);
   const selectedObjective = useMemo(() => getObjective(form.objectiveId), [form.objectiveId]);
@@ -367,6 +372,8 @@ export default function App() {
   function validateStep(currentStep = step) {
     if (currentStep === 0) {
       if (form.name.trim().length < 2) return "Digite seu nome para continuar.";
+      const emailError = validateEmail(form.email);
+      if (emailError) return emailError;
       const phoneError = validateMobile(form.phone);
       if (phoneError) return phoneError;
     }
@@ -392,7 +399,7 @@ export default function App() {
         fetch("/api/capture-lead", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: form.name.trim(), phone }),
+          body: JSON.stringify({ name: form.name.trim(), email: form.email.trim(), phone }),
           keepalive: true
         })
           .then((response) => {
@@ -426,6 +433,7 @@ export default function App() {
 
     const payload = {
       name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
       phone: normalizeBrazilianMobile(form.phone),
       unitCode: Number(form.unitCode),
       objectiveId: form.objectiveId,
@@ -433,6 +441,11 @@ export default function App() {
       slot: form.slot,
       tracking: getTrackingPayload()
     };
+    const trackingKey = `${payload.email}:${payload.phone}`;
+    if (!trackedLeadKeysRef.current.has(trackingKey)) {
+      pushLeadTypebotEvent(payload);
+      trackedLeadKeysRef.current.add(trackingKey);
+    }
 
     try {
       const response = await fetch("/api/submit-booking", {
@@ -1231,7 +1244,7 @@ function LeadForm({
 function StepNav({ form, setStep, step }) {
   const enabledStep = [
     true,
-    form.name.trim().length >= 2 && !validateMobile(form.phone),
+    form.name.trim().length >= 2 && !validateEmail(form.email) && !validateMobile(form.phone),
     Boolean(form.unitCode),
     Boolean(form.objectiveId),
     Boolean(form.workRoutineId)
@@ -1278,6 +1291,22 @@ function DataStep({ form, updateField }) {
             placeholder="Seu nome"
             type="text"
             value={form.name}
+          />
+        </div>
+      </label>
+
+      <label>
+        <span>E-mail</span>
+        <div className="input-shell">
+          <Mail aria-hidden="true" size={20} />
+          <input
+            autoComplete="email"
+            data-testid="email-input"
+            name="email"
+            onChange={(event) => updateField("email", event.target.value)}
+            placeholder="voce@exemplo.com"
+            type="email"
+            value={form.email}
           />
         </div>
       </label>
