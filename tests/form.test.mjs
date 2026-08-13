@@ -10,6 +10,7 @@ import {
   toBelleDate,
   validateMobile
 } from "../src/lib/domain.js";
+import { buildLeadTypebotEvent, pushLeadTypebotEvent } from "../src/lib/tracking.js";
 
 assert.equal(normalizeBrazilianMobile("+55 (84) 9 8830-7853"), "84988307853");
 assert.equal(formatPhone("84988307853"), "(84) 9 8830-7853");
@@ -21,6 +22,26 @@ assert.equal(getWorkRoutine("em-pe").label, "Trabalho em pé");
 assert.equal(toBelleDate("2026-07-09"), "09/07/2026");
 assert.equal(PROMOTION.serviceCode, 22);
 assert.equal(PROMOTION.duration, 60);
+
+assert.deepEqual(
+  buildLeadTypebotEvent({
+    name: "  Maria da Silva  ",
+    phone: "(84) 9 8830-7853"
+  }),
+  {
+    event: "lead-typebot",
+    name: "Maria da Silva",
+    phone: "+5584988307853"
+  }
+);
+
+const trackingTarget = {};
+pushLeadTypebotEvent(
+  { name: "Maria da Silva", phone: "84988307853" },
+  trackingTarget
+);
+assert.equal(trackingTarget.dataLayer.length, 1);
+assert.equal(trackingTarget.dataLayer[0].event, "lead-typebot");
 
 const url = buildWhatsAppUrl({
   number: "5584988307853",

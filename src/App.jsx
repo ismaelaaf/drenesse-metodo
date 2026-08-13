@@ -48,6 +48,7 @@ import {
   validateMobile
 } from "./lib/domain.js";
 import { RESULTS } from "./lib/results.js";
+import { pushLeadTypebotEvent } from "./lib/tracking.js";
 
 const INITIAL_FORM = {
   name: "",
@@ -299,6 +300,7 @@ export default function App() {
   const [submitState, setSubmitState] = useState("idle");
   const [result, setResult] = useState(null);
   const capturedLeadKeysRef = useRef(new Set());
+  const trackedLeadKeysRef = useRef(new Set());
 
   const selectedUnit = useMemo(() => getUnit(form.unitCode), [form.unitCode]);
   const selectedObjective = useMemo(() => getObjective(form.objectiveId), [form.objectiveId]);
@@ -433,6 +435,11 @@ export default function App() {
       slot: form.slot,
       tracking: getTrackingPayload()
     };
+    const trackingKey = payload.phone;
+    if (!trackedLeadKeysRef.current.has(trackingKey)) {
+      pushLeadTypebotEvent(payload);
+      trackedLeadKeysRef.current.add(trackingKey);
+    }
 
     try {
       const response = await fetch("/api/submit-booking", {
