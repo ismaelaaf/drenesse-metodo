@@ -16,6 +16,7 @@ import {
   getObjective,
   getUnit,
   getWorkRoutine,
+  isWholeHour,
   normalizeBrazilianMobile,
   validateMobile
 } from "../src/lib/domain.js";
@@ -103,6 +104,8 @@ function validatePayload(payload) {
   if (!payload.slot?.date || !payload.slot?.time || !payload.slot?.professionalCode) {
     return "Horário inválido.";
   }
+  // A etapa anterior roda no navegador e pode ser forjada.
+  if (!isWholeHour(payload.slot.time)) return "As sessões começam em hora fechada.";
   return "";
 }
 

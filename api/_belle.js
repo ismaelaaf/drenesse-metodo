@@ -5,6 +5,7 @@ import {
   getObjective,
   getUnit,
   getWorkRoutine,
+  isWholeHour,
   normalizeBrazilianMobile,
   toBelleDate
 } from "../src/lib/domain.js";
@@ -115,6 +116,7 @@ export function flattenAvailability(rawAvailability) {
       const professionalSlots = Array.isArray(professional.horarios) ? professional.horarios : [];
       return professionalSlots
         .filter((slot) => {
+          if (!isWholeHour(slot.horario)) return false;
           const status = String(slot.bloq || slot.cod || "").toLowerCase();
           return !status || status === "l";
         })
