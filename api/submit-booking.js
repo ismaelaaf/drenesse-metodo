@@ -22,6 +22,23 @@ import {
 
 export const BOOKING_ENDPOINT = "/agenda/gravar";
 
+/* A Belle recusa por regra de negócio com HTTP 200 e `sucesso:false`, então o
+   status da resposta não serve para decidir. Só `dis` confirma a gravação. */
+export function isBookingConfirmed(booking) {
+  if (!booking || typeof booking !== "object") return false;
+  if (booking.sucesso === false) return false;
+  return Boolean(booking.dis);
+}
+
+export function describeBelleError(error) {
+  const detail = error?.data?.msg || error?.data?.mensagem || error?.message || "";
+  return error?.statusCode ? `HTTP ${error.statusCode}: ${detail}` : detail;
+}
+
+function logBookingOutcome(stage, detail) {
+  console.log(JSON.stringify({ tag: "agendamento", stage, ...detail }));
+}
+
 export async function findExistingClientByPhone(phone, preferredUnitCode, fetcher = belleFetch) {
   const normalizedPhone = normalizeBrazilianMobile(phone);
   const orderedUnitCodes = [
@@ -46,7 +63,7 @@ export async function findExistingClientByPhone(phone, preferredUnitCode, fetche
   return null;
 }
 
-export function buildBookingBody({ leadCode, unit, objective, payload, observation }) {
+export function buildBookingBody({ leadCode, unit, payload, observation }) {
   return {
     codCli: Number(leadCode),
     codEstab: unit.code,
@@ -71,8 +88,6 @@ export function buildBookingBody({ leadCode, unit, objective, payload, observati
     agSala: false,
     codSala: 0,
     codVendedor: SELLER.code,
-    tipoObs: objective.belleObservationCode,
-    temPreferencia: false,
     observacao: observation
   };
 }
@@ -144,46 +159,77 @@ export default async function handler(req, res) {
     return;
   }
 
-  const leadStatus = "created";
-  const createdLead = await belleFetch("/cliente/gravar-lead", {
-    method: "POST",
-    body: {
-      nome: String(payload.name).trim(),
-      ddiCelular: "+55",
-      celular: phone,
-      email: "",
-      cpf: "",
-      observacao: observation,
-      tpOrigem: "Campanha",
-      codOrigem: config.originCode,
-      codEstab: unit.code
-    }
+  const fallbackResponse = (extra) => ({
+    ok: false,
+    bookingStatus: "fallback",
+    bookingMessage: "A equipe vai confirmar o melhor horário.",
+    whatsappUrl: buildFallbackWhatsapp({ ...payload, phone }, "fallback"),
+    ...extra
   });
+
+  let createdLead;
+  try {
+    createdLead = await belleFetch("/cliente/gravar-lead", {
+      method: "POST",
+      body: {
+        nome: String(payload.name).trim(),
+        ddiCelular: "+55",
+        celular: phone,
+        email: "",
+        cpf: "",
+        observacao: observation,
+        tpOrigem: "Campanha",
+        codOrigem: config.originCode,
+        codEstab: unit.code
+      }
+    });
+  } catch (error) {
+    logBookingOutcome("lead-error", { phone, unit: unit.code, belle: describeBelleError(error) });
+    sendJson(res, 200, fallbackResponse({
+      leadStatus: "failed",
+      message: "Cadastro recebido. Vamos confirmar os detalhes pelo WhatsApp."
+    }));
+    return;
+  }
+
   const leadCode = extractClientCode(createdLead);
 
   if (!leadCode) {
-    sendJson(res, 200, {
-      ok: false,
+    logBookingOutcome("lead-no-code", { phone, unit: unit.code, belle: createdLead?.msg || "" });
+    sendJson(res, 200, fallbackResponse({
       leadStatus: "failed",
-      bookingStatus: "fallback",
-      whatsappUrl: buildFallbackWhatsapp({ ...payload, phone }, "fallback"),
       message: "Cadastro recebido. Vamos confirmar os detalhes pelo WhatsApp."
-    });
+    }));
     return;
   }
+
+  const attempt = {
+    phone,
+    leadCode,
+    unit: unit.code,
+    slot: `${payload.slot.date} ${payload.slot.time}`,
+    prof: String(payload.slot.professionalCode)
+  };
 
   try {
     const booking = await belleFetch(BOOKING_ENDPOINT, {
       method: "POST",
-      body: buildBookingBody({ leadCode, unit, objective, payload, observation })
+      body: buildBookingBody({ leadCode, unit, payload, observation })
     });
 
-    const confirmed = Boolean(booking?.dis);
     const bookingCode = booking?.codAgendamento || booking?.codigo || "";
+    const confirmed = isBookingConfirmed(booking);
+
+    logBookingOutcome(confirmed ? "booked" : "refused", {
+      ...attempt,
+      bookingCode,
+      belle: booking?.msg || ""
+    });
+
     sendJson(res, 200, {
       ok: confirmed,
       leadCode,
-      leadStatus,
+      leadStatus: "created",
       bookingStatus: confirmed ? "confirmed" : "fallback",
       bookingCode,
       bookingMessage: confirmed ? "Sessão do Método Drenesse registrada." : "A equipe vai confirmar o melhor horário.",
@@ -194,13 +240,7 @@ export default async function handler(req, res) {
       )
     });
   } catch (error) {
-    sendJson(res, 200, {
-      ok: false,
-      leadCode,
-      leadStatus,
-      bookingStatus: "fallback",
-      bookingMessage: "A equipe vai confirmar o melhor horário.",
-      whatsappUrl: buildFallbackWhatsapp({ ...payload, phone }, "fallback")
-    });
+    logBookingOutcome("booking-error", { ...attempt, belle: describeBelleError(error) });
+    sendJson(res, 200, fallbackResponse({ leadCode, leadStatus: "created" }));
   }
 }
