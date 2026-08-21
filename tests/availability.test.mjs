@@ -5,6 +5,7 @@ import {
   buildAvailabilityDates,
   queryAvailabilityWindow
 } from "../api/availability.js";
+import { flattenAvailability } from "../api/_belle.js";
 
 assert.equal(AVAILABILITY_WINDOW_DAYS, 6);
 assert.deepEqual(buildAvailabilityQuery(3, "10/07/2026"), {
@@ -90,3 +91,51 @@ assert.equal(failed.successfulDates, 0);
 assert.equal(failed.failedDates.length, 6);
 
 console.log("Availability tests passed.");
+
+// Só hora fechada chega ao visitante: a Belle devolve a grade na granularidade
+// do profissional, que para alguns é de 5 em 5 minutos.
+const gradeDeCincoEmCinco = [
+  {
+    nome: "Domingo",
+    data: "23/08/2026",
+    disp: "61 horários",
+    horarios: [
+      {
+        codProf: 98875,
+        nome: "Angelica Gomes da Silva",
+        tempo_intervalo: "5",
+        horarios: [
+          { horario: "15:00", cod: "l", bloq: "l" },
+          { horario: "15:05", cod: "l", bloq: "l" },
+          { horario: "15:55", cod: "l", bloq: "l" },
+          { horario: "16:00", cod: "l", bloq: "l" },
+          { horario: "16:30", cod: "l", bloq: "l" }
+        ]
+      }
+    ]
+  }
+];
+
+const [diaFiltrado] = flattenAvailability(gradeDeCincoEmCinco);
+assert.deepEqual(diaFiltrado.slots.map((s) => s.time), ["15:00", "16:00"]);
+assert.equal(diaFiltrado.slots[0].professionalCode, "98875");
+
+// Horário ocupado continua fora, mesmo em hora fechada.
+const [diaOcupado] = flattenAvailability([
+  {
+    data: "23/08/2026",
+    horarios: [
+      {
+        codProf: 98875,
+        nome: "Angelica",
+        horarios: [
+          { horario: "17:00", cod: "o", bloq: "o" },
+          { horario: "18:00", cod: "l", bloq: "l" }
+        ]
+      }
+    ]
+  }
+]);
+assert.deepEqual(diaOcupado.slots.map((s) => s.time), ["18:00"]);
+
+console.log("Whole-hour availability tests passed.");

@@ -4,7 +4,13 @@ import {
   buildBenefitUsedWhatsapp,
   buildObservation
 } from "../api/_belle.js";
-import { BOOKING_ENDPOINT, buildBookingBody, findExistingClientByPhone } from "../api/submit-booking.js";
+import {
+  BOOKING_ENDPOINT,
+  buildBookingBody,
+  describeBelleError,
+  findExistingClientByPhone,
+  isBookingConfirmed
+} from "../api/submit-booking.js";
 import { PROMOTION, SELLER, getObjective, getUnit, getWorkRoutine } from "../src/lib/domain.js";
 
 const payload = {
@@ -37,6 +43,26 @@ assert.equal(body.serv[0].tempo, 60);
 assert.equal(body.serv[0].label, "22 - DRENAGEM MÉTODO DRENESSE");
 assert.ok(!("tipoConsulta" in body));
 assert.ok(!("tempo" in body));
+
+// O profissional escolhido precisa ir no corpo, e nada pode sinalizar
+// "sem preferência de profissional" junto — a Belle descarta o `prof`.
+assert.equal(body.prof.cod_usuario, "42");
+assert.equal(body.prof.nom_usuario, "Profissional Teste");
+assert.ok(!("temPreferencia" in body));
+assert.ok(!("tipoObs" in body));
+
+// Recusa de negócio da Belle chega com HTTP 200 e `sucesso:false`.
+assert.equal(isBookingConfirmed({ dis: true, codAgendamento: "884412" }), true);
+assert.equal(isBookingConfirmed({ sucesso: false, msg: "Serviço não localizado." }), false);
+assert.equal(isBookingConfirmed({ sucesso: false, dis: true }), false);
+assert.equal(isBookingConfirmed({}), false);
+assert.equal(isBookingConfirmed(null), false);
+
+const belleError = Object.assign(new Error("Belle retornou HTTP 429."), {
+  statusCode: 429,
+  data: { msg: "Too Many Requests" }
+});
+assert.equal(describeBelleError(belleError), "HTTP 429: Too Many Requests");
 
 const observation = buildObservation({
   name: "Maria",

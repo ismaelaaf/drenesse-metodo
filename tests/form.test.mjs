@@ -8,7 +8,8 @@ import {
   getWorkRoutine,
   normalizeBrazilianMobile,
   toBelleDate,
-  validateMobile
+  validateMobile,
+  isWholeHour
 } from "../src/lib/domain.js";
 import { buildLeadTypebotEvent, pushLeadTypebotEvent } from "../src/lib/tracking.js";
 
@@ -101,3 +102,12 @@ assert.ok(decodeURIComponent(generalContactUrl).includes("gostaria de mais infor
 assert.ok(!decodeURIComponent(generalContactUrl).includes("undefined"));
 
 console.log("Form/domain tests passed.");
+
+// Hora fechada
+assert.equal(isWholeHour("15:00"), true);
+assert.equal(isWholeHour("9:00"), true);
+assert.equal(isWholeHour("14:05"), false);
+assert.equal(isWholeHour("15:30"), false);
+assert.equal(isWholeHour(""), false);
+assert.equal(isWholeHour(undefined), false);
+console.log("Whole-hour domain tests passed.");

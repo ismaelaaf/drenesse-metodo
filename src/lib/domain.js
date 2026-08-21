@@ -142,6 +142,14 @@ export function getWorkRoutine(id) {
   return WORK_ROUTINES.find((routine) => routine.id === id) || null;
 }
 
+/* A campanha só agenda em hora fechada. A Belle devolve a agenda na
+   granularidade do `tempo_intervalo` do profissional — de 5 em 5 minutos para
+   alguns —, o que ofereceria dezenas de inícios sobrepostos para uma sessão de
+   60 minutos e fragmentaria o dia de quem atende. */
+export function isWholeHour(time = "") {
+  return /^\d{1,2}:00$/.test(String(time).trim());
+}
+
 export function toBelleDate(dateInput = new Date()) {
   const date = dateInput instanceof Date ? dateInput : new Date(`${dateInput}T00:00:00`);
   const day = String(date.getDate()).padStart(2, "0");
