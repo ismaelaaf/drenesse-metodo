@@ -437,7 +437,14 @@ export default function App() {
     };
     const trackingKey = payload.phone;
     if (!trackedLeadKeysRef.current.has(trackingKey)) {
-      pushLeadTypebotEvent(payload);
+      pushLeadTypebotEvent({
+        name: payload.name,
+        phone: payload.phone,
+        unidade: selectedUnit?.name,
+        objetivo: selectedObjective?.label,
+        rotina: selectedWorkRoutine?.label,
+        horario: `${payload.slot.date} às ${payload.slot.time}`
+      });
       trackedLeadKeysRef.current.add(trackingKey);
     }
 
