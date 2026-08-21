@@ -26,12 +26,20 @@ assert.equal(PROMOTION.duration, 60);
 assert.deepEqual(
   buildLeadTypebotEvent({
     name: "  Maria da Silva  ",
-    phone: "(84) 9 8830-7853"
+    phone: "(84) 9 8830-7853",
+    unidade: "Drenesse Petrópolis",
+    objetivo: "Corporal",
+    rotina: "Trabalho sentado(a)",
+    horario: "09/07/2026 às 15:00"
   }),
   {
     event: "lead-typebot",
     name: "Maria da Silva",
-    phone: "+5584988307853"
+    phone: "+5584988307853",
+    unidade: "Drenesse Petrópolis",
+    objetivo: "Corporal",
+    rotina: "Trabalho sentado(a)",
+    horario: "09/07/2026 às 15:00"
   }
 );
 
@@ -42,6 +50,15 @@ pushLeadTypebotEvent(
 );
 assert.equal(trackingTarget.dataLayer.length, 1);
 assert.equal(trackingTarget.dataLayer[0].event, "lead-typebot");
+assert.deepEqual(Object.keys(trackingTarget.dataLayer[0]), [
+  "event",
+  "name",
+  "phone",
+  "unidade",
+  "objetivo",
+  "rotina",
+  "horario"
+]);
 
 const url = buildWhatsAppUrl({
   number: "5584988307853",
