@@ -38,6 +38,50 @@ function rawDay(date, time = "09:00") {
   };
 }
 
+const halfHourly = await queryAvailabilityWindow({
+  startDate: "09/07/2026",
+  fetchDate: async (date) => {
+    const day = rawDay(date);
+    day.horarios[0].horarios = Array.from({ length: 60 }, (_, minute) => ({
+      horario: `09:${String(minute).padStart(2, "0")}`,
+      bloq: "l",
+      turno: "M"
+    }));
+    day.horarios.push({
+      codProf: 43,
+      nome: "Outra Profissional",
+      horarios: [
+        { horario: "09:30" },
+        { horario: "10:00", bloq: "b" },
+        { horario: "10:30", cod: "b" },
+        { horario: "24:00", bloq: "l" },
+        { horario: "09:00:15", bloq: "l" },
+        { horario: "", bloq: "l" }
+      ]
+    });
+    return [day];
+  }
+});
+assert.equal(halfHourly.days.length, 6);
+for (const day of halfHourly.days) {
+  assert.deepEqual(
+    day.slots.map(({ time, professionalCode }) => ({ time, professionalCode })),
+    [
+      { time: "09:00", professionalCode: "42" },
+      { time: "09:30", professionalCode: "43" },
+      { time: "09:30", professionalCode: "42" }
+    ]
+  );
+}
+
+const offGridOnly = await queryAvailabilityWindow({
+  startDate: "09/07/2026",
+  fetchDate: async (date) => [rawDay(date, "09:15")]
+});
+assert.equal(offGridOnly.partial, false);
+assert.equal(offGridOnly.successfulDates, 6);
+assert.ok(offGridOnly.days.every((day) => day.slots.length === 0));
+
 const requestedDates = [];
 let activeRequests = 0;
 let maximumConcurrency = 0;
