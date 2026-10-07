@@ -6,6 +6,7 @@ import {
   buildObservation,
   extractClientCode,
   getServerConfig,
+  isAllowedBookingTime,
   readJsonBody,
   sendJson
 } from "./_belle.js";
@@ -85,7 +86,7 @@ function validatePayload(payload) {
   if (!getUnit(payload.unitCode)) return "Unidade inválida.";
   if (!getObjective(payload.objectiveId)) return "Objetivo inválido.";
   if (!getWorkRoutine(payload.workRoutineId)) return "Rotina inválida.";
-  if (!payload.slot?.date || !payload.slot?.time || !payload.slot?.professionalCode) {
+  if (!payload.slot?.date || !isAllowedBookingTime(payload.slot?.time) || !payload.slot?.professionalCode) {
     return "Horário inválido.";
   }
   return "";

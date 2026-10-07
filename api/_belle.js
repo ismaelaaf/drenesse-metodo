@@ -106,6 +106,10 @@ export async function belleFetch(path, { method = "GET", query, body } = {}) {
   return data;
 }
 
+export function isAllowedBookingTime(time) {
+  return typeof time === "string" && /^(?:[01]\d|2[0-3]):(?:00|30)$/.test(time);
+}
+
 export function flattenAvailability(rawAvailability) {
   const days = Array.isArray(rawAvailability) ? rawAvailability : rawAvailability ? [rawAvailability] : [];
 
@@ -116,7 +120,7 @@ export function flattenAvailability(rawAvailability) {
       return professionalSlots
         .filter((slot) => {
           const status = String(slot.bloq || slot.cod || "").toLowerCase();
-          return !status || status === "l";
+          return (!status || status === "l") && isAllowedBookingTime(slot.horario);
         })
         .map((slot) => ({
           id: `${day.data}-${slot.horario}-${professional.codProf || professional.cod_prof || professional.codigo}`,
