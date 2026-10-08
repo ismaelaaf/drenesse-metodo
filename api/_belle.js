@@ -107,7 +107,7 @@ export async function belleFetch(path, { method = "GET", query, body } = {}) {
 }
 
 export function isAllowedBookingTime(time) {
-  return typeof time === "string" && /^(?:[01]\d|2[0-3]):(?:00|30)$/.test(time);
+  return typeof time === "string" && /^(?:[01]\d|2[0-3]):00$/.test(time);
 }
 
 export function flattenAvailability(rawAvailability) {

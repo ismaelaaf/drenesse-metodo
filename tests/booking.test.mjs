@@ -10,7 +10,7 @@ import { PROMOTION, SELLER, getObjective, getUnit, getWorkRoutine } from "../src
 const payload = {
   slot: {
     date: "10/07/2026",
-    time: "14:30",
+    time: "14:00",
     professionalCode: "42",
     professionalName: "Profissional Teste"
   }
@@ -88,7 +88,7 @@ try {
     return new Response(JSON.stringify(data), { status: 200 });
   };
 
-  for (const time of ["09:15", "09:45", "09:10", "24:00", "09:00:15", "", null]) {
+  for (const time of ["09:15", "09:30", "09:45", "09:10", "14:30", "24:00", "09:00:15", "", null]) {
     const response = {
       setHeader() {},
       end(value) { this.body = JSON.parse(value); }
@@ -109,7 +109,7 @@ try {
     assert.equal(bookingCalls.length, 0, "Invalid times must not create leads or bookings");
   }
 
-  for (const time of ["09:00", "09:30"]) {
+  for (const time of ["09:00", "10:00"]) {
     const response = {
       setHeader() {},
       end(value) { this.body = JSON.parse(value); }
