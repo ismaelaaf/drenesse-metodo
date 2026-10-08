@@ -24,7 +24,7 @@ O plugin local do Vite carrega as variáveis apenas no processo do servidor. Ela
 - Ao avançar para a segunda etapa, cria um card na etapa `Leads Landing Page` do painel `SDRs` na Lever Conversas.
 - Impede uma nova utilização do benefício quando o WhatsApp já existe no cadastro Belle de qualquer unidade da campanha.
 - Qualifica unidade, objetivo e rotina de trabalho.
-- Consulta a data atual e os cinco dias seguintes na Belle para o serviço `22 - DRENAGEM MÉTODO DRENESSE`.
+- Consulta a data atual e os cinco dias seguintes na Belle para o serviço `56260425 - DRENAGEM MÉTODO DRENESSE`.
 - Oferece e aceita agendamentos apenas em horários terminados em `:00` ou `:30`.
 - Distingue horários disponíveis, consulta parcial e falha técnica.
 - Tenta gravar uma sessão de 60 minutos em `/agenda/gravar` quando o visitante escolhe um horário.
@@ -32,6 +32,6 @@ O plugin local do Vite carrega as variáveis apenas no processo do servidor. Ela
 
 ## Campanha
 
-- Condição apresentada: de `R$ 159,90` por `R$ 89,90`.
+- Condição apresentada: de `R$ 159,90` por `R$ 98,70`.
 - O site não recebe pagamento; a aplicação do valor promocional é confirmada pela equipe.
 - A observação enviada à Belle inclui serviço, duração, preço da campanha, unidade, objetivo, rotina e UTMs.

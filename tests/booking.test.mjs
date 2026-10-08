@@ -34,7 +34,7 @@ assert.equal(body.serv.length, 1);
 assert.equal(body.serv[0].codServico, PROMOTION.serviceCode);
 assert.equal(body.serv[0].nome, "DRENAGEM MÉTODO DRENESSE");
 assert.equal(body.serv[0].tempo, 60);
-assert.equal(body.serv[0].label, "22 - DRENAGEM MÉTODO DRENESSE");
+assert.equal(body.serv[0].label, "56260425 - DRENAGEM MÉTODO DRENESSE");
 assert.ok(!("tipoConsulta" in body));
 assert.ok(!("tempo" in body));
 
@@ -47,9 +47,9 @@ const observation = buildObservation({
   slot: payload.slot,
   tracking: { utm_source: "teste", utm_campaign: "metodo-drenesse" }
 });
-assert.match(observation, /Serviço: 22 - DRENAGEM MÉTODO DRENESSE/);
+assert.match(observation, /Serviço: 56260425 - DRENAGEM MÉTODO DRENESSE/);
 assert.match(observation, /Duração: 60 minutos/);
-assert.match(observation, /Campanha: de R\$ 159,90 por R\$ 89,90/);
+assert.match(observation, /Campanha: de R\$ 159,90 por R\$ 98,70/);
 assert.match(observation, /Rotina: Trabalho sentado\(a\)/);
 assert.match(observation, /Vendedor: Ismael Anderson de Araújo Figueiredo/);
 
@@ -128,6 +128,9 @@ try {
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.bookingStatus, "confirmed");
     assert.equal(bookingCalls.at(-1).body.hri, time);
+    assert.equal(bookingCalls.at(-1).body.serv[0].codServico, 56260425);
+    assert.match(bookingCalls.at(-1).body.observacao, /por R\$ 98,70/);
+    assert.match(new URL(response.body.whatsappUrl).searchParams.get("text"), /por R\$ 98,70/);
   }
 } finally {
   globalThis.fetch = originalFetch;

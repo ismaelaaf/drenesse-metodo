@@ -20,7 +20,7 @@ assert.equal(getUnit(2).shortName, "Lagoa Nova");
 assert.equal(getObjective("facial").belleObservationCode, 2);
 assert.equal(getWorkRoutine("em-pe").label, "Trabalho em pé");
 assert.equal(toBelleDate("2026-07-09"), "09/07/2026");
-assert.equal(PROMOTION.serviceCode, 22);
+assert.equal(PROMOTION.serviceCode, 56260425);
 assert.equal(PROMOTION.duration, 60);
 
 assert.deepEqual(
@@ -76,7 +76,7 @@ assert.ok(url.startsWith("https://wa.me/5584988307853?text="));
 assert.ok(decodeURIComponent(url).includes("Drenesse Petrópolis"));
 assert.ok(decodeURIComponent(url).includes("Trabalho sentado(a)"));
 assert.ok(decodeURIComponent(url).includes("09/07/2026 às 15:00"));
-assert.ok(decodeURIComponent(url).includes("R$ 89,90"));
+assert.ok(decodeURIComponent(url).includes("R$ 98,70"));
 assert.ok(decodeURIComponent(url).includes("DRENAGEM MÉTODO DRENESSE"));
 
 const noAvailabilityUrl = buildWhatsAppUrl({
