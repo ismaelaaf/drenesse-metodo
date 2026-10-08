@@ -25,7 +25,7 @@ O plugin local do Vite carrega as variáveis apenas no processo do servidor. Ela
 - Impede uma nova utilização do benefício quando o WhatsApp já existe no cadastro Belle de qualquer unidade da campanha.
 - Qualifica unidade, objetivo e rotina de trabalho.
 - Consulta a data atual e os cinco dias seguintes na Belle para o serviço `56260425 - DRENAGEM MÉTODO DRENESSE`.
-- Oferece e aceita agendamentos apenas em horários terminados em `:00` ou `:30`.
+- Oferece e aceita agendamentos apenas em horários terminados em `:00`.
 - Distingue horários disponíveis, consulta parcial e falha técnica.
 - Tenta gravar uma sessão de 60 minutos em `/agenda/gravar` quando o visitante escolhe um horário.
 - Quando não há vaga online, abre o WhatsApp com os dados e o período preenchidos para consulta de encaixe.
