@@ -11,7 +11,7 @@ assert.deepEqual(buildAvailabilityQuery(3, "10/07/2026"), {
   codEstab: 3,
   dtAgenda: "10/07/2026",
   periodo: "todos",
-  servicos: "22",
+  servicos: "56260425",
   tpAgd: "p"
 });
 assert.deepEqual(buildAvailabilityDates("30/12/2026"), [
