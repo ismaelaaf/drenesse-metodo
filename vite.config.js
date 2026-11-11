@@ -11,7 +11,8 @@ const SERVER_ENV_KEYS = [
   "LEVER_API_TOKEN",
   "LEVER_BASE_URL",
   "LEVER_PANEL_ID",
-  "LEVER_STEP_ID"
+  "LEVER_STEP_ID",
+  "LEVER_SCHEDULED_STEP_ID"
 ];
 
 function localVercelApi() {

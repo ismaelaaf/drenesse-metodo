@@ -300,6 +300,7 @@ export default function App() {
   const [submitState, setSubmitState] = useState("idle");
   const [result, setResult] = useState(null);
   const capturedLeadKeysRef = useRef(new Set());
+  const leverCardRef = useRef(null);
   const trackedLeadKeysRef = useRef(new Set());
 
   const selectedUnit = useMemo(() => getUnit(form.unitCode), [form.unitCode]);
@@ -397,8 +398,13 @@ export default function App() {
           body: JSON.stringify({ name: form.name.trim(), phone }),
           keepalive: true
         })
-          .then((response) => {
-            if (!response.ok) capturedLeadKeysRef.current.delete(captureKey);
+          .then(async (response) => {
+            if (!response.ok) {
+              capturedLeadKeysRef.current.delete(captureKey);
+              return;
+            }
+            const data = await response.json().catch(() => ({}));
+            if (data.cardId) leverCardRef.current = { phone, cardId: data.cardId };
           })
           .catch(() => capturedLeadKeysRef.current.delete(captureKey));
       }
@@ -426,13 +432,15 @@ export default function App() {
     setSubmitState("loading");
     setError("");
 
+    const phone = normalizeBrazilianMobile(form.phone);
     const payload = {
       name: form.name.trim(),
-      phone: normalizeBrazilianMobile(form.phone),
+      phone,
       unitCode: Number(form.unitCode),
       objectiveId: form.objectiveId,
       workRoutineId: form.workRoutineId,
       slot: form.slot,
+      cardId: leverCardRef.current?.phone === phone ? leverCardRef.current.cardId : "",
       tracking: getTrackingPayload()
     };
     const trackingKey = payload.phone;

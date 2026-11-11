@@ -28,6 +28,7 @@ O plugin local do Vite carrega as variáveis apenas no processo do servidor. Ela
 - Oferece e aceita agendamentos apenas em horários terminados em `:00`.
 - Distingue horários disponíveis, consulta parcial e falha técnica.
 - Tenta gravar uma sessão de 60 minutos em `/agenda/gravar` quando o visitante escolhe um horário.
+- Com a sessão confirmada na Belle, anota o horário no card da Lever e o move para a etapa `Agendado` (mesma regra da LP Stimulus Sculp).
 - Quando não há vaga online, abre o WhatsApp com os dados e o período preenchidos para consulta de encaixe.
 
 ## Campanha
