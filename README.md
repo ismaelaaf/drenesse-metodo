@@ -21,13 +21,14 @@ O plugin local do Vite carrega as variáveis apenas no processo do servidor. Ela
 ## Fluxo
 
 - Coleta nome e WhatsApp, com validação de DDD e celular.
-- Ao avançar para a segunda etapa, cria um card na etapa `Leads Landing Page` do painel `SDRs` na Lever Conversas.
+- Ao avançar para a segunda etapa, cria um card na etapa `Primeiro contato` do painel `Landing Pages` na Lever Conversas (mesmo funil da LP Stimulus Sculp).
 - Impede uma nova utilização do benefício quando o WhatsApp já existe no cadastro Belle de qualquer unidade da campanha.
 - Qualifica unidade, objetivo e rotina de trabalho.
 - Consulta a data atual e os cinco dias seguintes na Belle para o serviço `56260425 - DRENAGEM MÉTODO DRENESSE`.
 - Oferece e aceita agendamentos apenas em horários terminados em `:00`.
 - Distingue horários disponíveis, consulta parcial e falha técnica.
 - Tenta gravar uma sessão de 60 minutos em `/agenda/gravar` quando o visitante escolhe um horário.
+- Com a sessão confirmada na Belle, anota o horário no card da Lever e o move para a etapa `Agendado` (mesma regra da LP Stimulus Sculp).
 - Quando não há vaga online, abre o WhatsApp com os dados e o período preenchidos para consulta de encaixe.
 
 ## Campanha

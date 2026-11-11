@@ -20,8 +20,29 @@ import {
   normalizeBrazilianMobile,
   validateMobile
 } from "../src/lib/domain.js";
+import { isLeverCardId, moveLeverCardToScheduled } from "./capture-lead.js";
 
 export const BOOKING_ENDPOINT = "/agenda/gravar";
+
+const LEVER_SCHEDULE_TIMEOUT_MS = 5000;
+
+// Falha na Lever não pode atrapalhar a confirmação do agendamento: só registra no log.
+export async function markLeverCardScheduled(details, move = moveLeverCardToScheduled, timeoutMs = LEVER_SCHEDULE_TIMEOUT_MS) {
+  if (!isLeverCardId(details.cardId)) return false;
+  let timer;
+  try {
+    await Promise.race([
+      move(details),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("Tempo esgotado na Lever.")), timeoutMs); })
+    ]);
+    return true;
+  } catch (error) {
+    console.error("Não foi possível mover o card da Lever para Agendado.", error?.message || error);
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export async function findExistingClientByPhone(phone, preferredUnitCode, fetcher = belleFetch) {
   const normalizedPhone = normalizeBrazilianMobile(phone);
@@ -181,6 +202,9 @@ export default async function handler(req, res) {
 
     const confirmed = Boolean(booking?.dis);
     const bookingCode = booking?.codAgendamento || booking?.codigo || "";
+    if (confirmed) {
+      await markLeverCardScheduled({ cardId: payload.cardId, phone, slot: payload.slot, unit });
+    }
     sendJson(res, 200, {
       ok: confirmed,
       leadCode,

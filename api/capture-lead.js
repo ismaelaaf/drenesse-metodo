@@ -2,17 +2,25 @@ import { allowMethods, readJsonBody, sendJson } from "./_belle.js";
 import { formatPhone, normalizeBrazilianMobile, validateMobile } from "../src/lib/domain.js";
 
 const DEFAULT_BASE_URL = "https://api.app.leverconversas.com.br";
-const DEFAULT_PANEL_ID = "929d58b8-2650-4993-9deb-b7aaa6481b3b";
-const DEFAULT_STEP_ID = "0e0f41c7-0c7b-4576-b3bd-f62d42e74458";
+const DEFAULT_PANEL_ID = "a3ee4cf3-291f-4c8f-8535-e3414642951a";
+const DEFAULT_STEP_ID = "44586803-6791-41fd-b95a-826902688a25";
+// Etapa "Agendado" do painel Landing Pages: o card vai para ela quando a sessão é confirmada na Belle.
+const DEFAULT_SCHEDULED_STEP_ID = "4706f31a-feb2-4726-aea7-e0eaf57c7125";
 const LANDING_SOURCE = "Landing Método Drenesse";
+const CARD_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function getLeverConfig() {
   return {
     token: process.env.LEVER_API_TOKEN || "",
     baseUrl: (process.env.LEVER_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, ""),
     panelId: process.env.LEVER_PANEL_ID || DEFAULT_PANEL_ID,
-    stepId: process.env.LEVER_STEP_ID || DEFAULT_STEP_ID
+    stepId: process.env.LEVER_STEP_ID || DEFAULT_STEP_ID,
+    scheduledStepId: process.env.LEVER_SCHEDULED_STEP_ID || DEFAULT_SCHEDULED_STEP_ID
   };
+}
+
+export function isLeverCardId(value) {
+  return CARD_ID_PATTERN.test(String(value || ""));
 }
 
 function getLeverHeaders(config) {
@@ -160,6 +168,53 @@ export async function createLeverCard(lead, { config = getLeverConfig(), fetcher
     config,
     fetcher
   });
+  return getResponseEntity(payload);
+}
+
+export async function getLeverCard(cardId, { config = getLeverConfig(), fetcher = fetch } = {}) {
+  const payload = await requestLeverJson(
+    `${config.baseUrl}/crm/v2/panel/card/${encodeURIComponent(cardId)}`,
+    { config, fetcher }
+  );
+  return getResponseEntity(payload);
+}
+
+export function buildLeverScheduledPayload({ description, slot, unit }, config = getLeverConfig()) {
+  const line = `Agendado: ${slot.date} ${slot.time} - ${unit.name}`;
+  const current = String(description || "").trimEnd();
+  return {
+    fields: ["Description", "StepId"],
+    description: current.includes(line) ? current : [current, line].filter(Boolean).join("\n"),
+    stepId: config.scheduledStepId
+  };
+}
+
+// Mesma regra da LP Stimulus: com a sessão confirmada, anota o horário no card e o move para "Agendado".
+// Só mexe em card deste painel e ligado ao contato deste WhatsApp.
+export async function moveLeverCardToScheduled(
+  { cardId, phone, slot, unit },
+  { config = getLeverConfig(), fetcher = fetch } = {}
+) {
+  if (!isLeverCardId(cardId)) throw new Error("Card inválido.");
+  const [card, contact] = await Promise.all([
+    getLeverCard(cardId, { config, fetcher }),
+    findLeverContactByPhone(phone, { config, fetcher })
+  ]);
+  const samePanel = String(card?.panelId || "") === String(config.panelId);
+  const sameContact = Boolean(contact?.id)
+    && Array.isArray(card?.contactIds)
+    && card.contactIds.some((contactId) => String(contactId) === String(contact.id));
+  if (!samePanel || !sameContact) throw new Error("O card informado não pertence a este contato e painel.");
+
+  const payload = await requestLeverJson(
+    `${config.baseUrl}/crm/v3/panel/card/${encodeURIComponent(cardId)}`,
+    {
+      method: "PUT",
+      body: buildLeverScheduledPayload({ description: card?.description, slot, unit }, config),
+      config,
+      fetcher
+    }
+  );
   return getResponseEntity(payload);
 }
 
