@@ -9,8 +9,8 @@ import {
 const config = {
   token: "test-token",
   baseUrl: "https://api.app.leverconversas.com.br",
-  panelId: "929d58b8-2650-4993-9deb-b7aaa6481b3b",
-  stepId: "0e0f41c7-0c7b-4576-b3bd-f62d42e74458"
+  panelId: "a3ee4cf3-291f-4c8f-8535-e3414642951a",
+  stepId: "44586803-6791-41fd-b95a-826902688a25"
 };
 
 const lead = { name: " Maria da Silva ", phone: "+55 (84) 9 8830-7853" };

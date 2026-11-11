@@ -2,8 +2,8 @@ import { allowMethods, readJsonBody, sendJson } from "./_belle.js";
 import { formatPhone, normalizeBrazilianMobile, validateMobile } from "../src/lib/domain.js";
 
 const DEFAULT_BASE_URL = "https://api.app.leverconversas.com.br";
-const DEFAULT_PANEL_ID = "929d58b8-2650-4993-9deb-b7aaa6481b3b";
-const DEFAULT_STEP_ID = "0e0f41c7-0c7b-4576-b3bd-f62d42e74458";
+const DEFAULT_PANEL_ID = "a3ee4cf3-291f-4c8f-8535-e3414642951a";
+const DEFAULT_STEP_ID = "44586803-6791-41fd-b95a-826902688a25";
 const LANDING_SOURCE = "Landing Método Drenesse";
 
 export function getLeverConfig() {
